@@ -20,9 +20,9 @@ Following command will execute a conversion from CityJSON to IFC
 - [ ] "MultiSurface"
 - [ ] "CompositeSurface"
 - [ ] "Solid"
-- [ ] "MultiSolid"
-- [x] "CompositeSolid": exterior shell
-- [ ] "CompositeSolid": interior shell
+- [x] "MultiSolid": exterior shell
+- [ ] "MultiSolid": interior shell
+- [ ] "CompositeSolid"
 - [ ] "GeometryInstance" 
 
 ## TODO
