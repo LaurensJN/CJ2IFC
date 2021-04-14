@@ -14,7 +14,7 @@ Following command will execute a conversion from CityJSON to IFC
   
     python CJ2IFC.py [-i input file] [-o output file] [-n name of identification attribute]
 
-The example file that could be used is exmaples/3D_BAG.json
+The example file that could be used is example/3D_BAG_example.json
 
     python CJ2IFC.py -i example/3DBAG_example.json -o example/3DBAG_example.ifc -n Identification
 
