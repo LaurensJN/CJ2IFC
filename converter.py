@@ -1,5 +1,5 @@
 import ifcopenshell
-from ifcopenshell import geom
+import warnings
 
 JSON_TO_IFC = {
     "Building": ["IfcBuilding"],
@@ -28,17 +28,19 @@ class Converter:
     def __init__(self):
         self.city_model = None
         self.IFC_model = None
+        self.properties = {}
         self.configuration()
 
-    def configuration(self, file_destination="example/example_output.ifc", name_attribute=None):
+    def configuration(self, file_destination="output.ifc", name_attribute=None):
         self.file_destination = file_destination
         self.name_attribute = name_attribute
 
     def convert(self, city_model):
         self.city_model = city_model
         self.create_new_file()
-        self.local_scale = self.city_model.j['transform']['scale']
-        self.local_translation = self.city_model.j['transform']['translate']
+        if 'transform' in self.city_model.j:
+            self.properties["local_scale"] = self.city_model.j['transform']['scale']
+            self.properties["local_translation"] = self.city_model.j['transform']['translate']
         self.build_vertices()
         self.create_IFC_classes()
 
@@ -57,9 +59,13 @@ class Converter:
         vertices = self.city_model.j["vertices"]
         self.vertex_dict = {}
         for vertex in vertices:
-            IFC_vertex = tuple([float(coord) * coord_scale
-                                for coord, coord_scale
-                                in zip(vertex, self.local_scale)])
+            if "local_scale" in self.properties:
+                IFC_vertex = tuple([float(coord) * coord_scale
+                                    for coord, coord_scale
+                                    in zip(vertex, self.properties["local_scale"])])
+            else:
+                IFC_vertex = [float(coord) for coord in vertex]
+
             IFC_cartesian_point = self.IFC_model.create_entity("IfcCartesianPoint", IFC_vertex)
             self.vertex_dict[tuple(vertex)] = IFC_cartesian_point
 
@@ -96,20 +102,19 @@ class Converter:
                     lod = geom.lod
             IFC_geometry = self.create_IFC_geometry(geometry)
 
-            # IFCSHAPEREPRESENTATION(  # 21,'Body','Brep',(#13328));
-
-            # semantic_surfaces (RoofSurface/GroundSurface/WallSurface)
-            shape_representation = self.IFC_model.create_entity("IfcShapeRepresentation",
-                                                                self.IFC_representation_context, 'Body', 'Brep',
-                                                                [IFC_geometry])
-            product_representation = self.IFC_model.create_entity("IfcProductDefinitionShape",
-                                                                  Representations=[shape_representation])
-
             data["GlobalId"] = ifcopenshell.guid.new()
             data["Name"] = IFC_name
-            data["Representation"] = product_representation
-            IFC_object = self.IFC_model.create_entity(IFC_class, **data)
+            if IFC_geometry:
+                # semantic_surfaces (RoofSurface/GroundSurface/WallSurface)
+                shape_representation = self.IFC_model.create_entity("IfcShapeRepresentation",
+                                                                    self.IFC_representation_context, 'Body', 'Brep',
+                                                                    [IFC_geometry])
+                product_representation = self.IFC_model.create_entity("IfcProductDefinitionShape",
+                                                                      Representations=[shape_representation])
+                data["Representation"] = product_representation
 
+
+            IFC_object = self.IFC_model.create_entity(IFC_class, **data)
             # Define aggregation
             self.IFC_model.create_entity("IfcRelAggregates",
                                          **{"GlobalId": ifcopenshell.guid.new(),
@@ -118,6 +123,11 @@ class Converter:
                                          )
 
     def create_IFC_geometry(self, geometry):
+        print(geometry.type)
+        if geometry.type != "Solid":
+            warnings.warn("Types other than solids are not yet supported")
+            return
+
         outershell = geometry.boundaries[0]
         faces = []
         for surface in outershell:  # exterior shell
@@ -134,9 +144,13 @@ class Converter:
             IFC_geometry = self.IFC_model.create_entity("IfcFacetedBrep", shell)
             return IFC_geometry
 
+
+
         # TODO: INTERIOR SHELL
-        for boundary in geometry.boundaries[1]:  # interior shell
-            for face in boundary:
-                for triangle in face:
-                    print(triangle)
+        warnings.warn("Solid interior shell not yet supported")
+        return
+        # for boundary in geometry.boundaries[1]:  # interior shell
+        #     for face in boundary:
+        #         for triangle in face:
+        #             print(triangle)
         # print(geometry.boundaries)
