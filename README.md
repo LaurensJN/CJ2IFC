@@ -12,7 +12,11 @@ CJ2IFC only came into being 14/04/2021. Be prepared for lots of bugs, unfinished
 ## Usage of CJ2IFC
 Following command will execute a conversion from CityJSON to IFC
   
-    CJ2IFC.py [-i input file] [-o output file] [-n name of identification attribute]
+    python CJ2IFC.py [-i input file] [-o output file] [-n name of identification attribute]
+
+The example file that could be used is exmaples/3D_BAG.json
+
+    python CJ2IFC.py -i example/3DBAG_example.json -o example/3DBAG_example.ifc -n Identification
 
 ## Implemented geometries
 - [ ] "MultiPoint"
