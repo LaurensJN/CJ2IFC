@@ -32,19 +32,22 @@ class Converter:
         self.configuration()
 
     def configuration(self, file_destination="output.ifc", name_attribute=None):
-        self.file_destination = file_destination
-        self.name_attribute = name_attribute
+        self.properties["file_destination"] = file_destination
+        self.properties["name_attribute"] = name_attribute
 
     def convert(self, city_model):
         self.city_model = city_model
         self.create_new_file()
+        self.create_metadata()
+        self.build_vertices()
+        self.create_IFC_classes()
+        self.write_file()
+
+    def create_metadata(self):
+        # Georeferencing
         if 'transform' in self.city_model.j:
             self.properties["local_scale"] = self.city_model.j['transform']['scale']
             self.properties["local_translation"] = self.city_model.j['transform']['translate']
-        self.build_vertices()
-        self.create_IFC_classes()
-
-        self.write_file()
 
     def create_new_file(self):
         self.IFC_model = ifcopenshell.open('example/template.ifc')
@@ -53,7 +56,7 @@ class Converter:
         # self.IFC_model = ifcopenshell.file(schema='IFC4')
 
     def write_file(self):
-        self.IFC_model.write(self.file_destination)
+        self.IFC_model.write(self.properties["file_destination"])
 
     def build_vertices(self):
         vertices = self.city_model.j["vertices"]
@@ -69,29 +72,28 @@ class Converter:
             IFC_cartesian_point = self.IFC_model.create_entity("IfcCartesianPoint", IFC_vertex)
             self.vertex_dict[tuple(vertex)] = IFC_cartesian_point
 
-        pass
-
     def create_IFC_classes(self):
         for obj_id, obj in self.city_model.get_cityobjects().items():
-            # type
+
+            # CityJSON type to class
             mapping = JSON_TO_IFC[obj.type]
             IFC_class = mapping[0]
             data = {}
+            # Add attributes if it is specified in mapping
+            # Example: BuildingPart to IfcBuilding with CompositionType: Partial
             if len(mapping) > 1:
                 data = mapping[1]
 
             # attributes
             IFC_name = None
-            if self.name_attribute and self.name_attribute in obj.attributes:
-                IFC_name = obj.attributes[self.name_attribute]
+            if "name_attribute" in self.properties and self.properties["name_attribute"] in obj.attributes:
+                IFC_name = obj.attributes[self.properties["name_attribute"]]
 
-            ## name: attributes.identificatie
+            # TODO children
 
-            # children
+            # TODO parents
 
-            # parents
-
-            # geometry_type
+            # TODO geometry_type
 
             # geometry_lod
             lod = 0
@@ -123,7 +125,6 @@ class Converter:
                                          )
 
     def create_IFC_geometry(self, geometry):
-        print(geometry.type)
         if geometry.type != "Solid":
             warnings.warn("Types other than solids are not yet supported")
             return
@@ -143,8 +144,6 @@ class Converter:
             shell = self.IFC_model.create_entity("IfcClosedShell", faces)
             IFC_geometry = self.IFC_model.create_entity("IfcFacetedBrep", shell)
             return IFC_geometry
-
-
 
         # TODO: INTERIOR SHELL
         warnings.warn("Solid interior shell not yet supported")
