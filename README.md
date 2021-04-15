@@ -16,7 +16,7 @@ Following command will execute a conversion from CityJSON to IFC
 
 The example file that could be used is example/3D_BAG_example.json
 
-    python CJ2IFC.py -i example/3DBAG_example.json -o example/3DBAG_example.ifc -n Identification
+    python CJ2IFC.py -i example/3DBAG_example.json -o example/3DBAG_example.ifc -n identificatie
 
 ## Implemented geometries
 - [ ] "MultiPoint"
