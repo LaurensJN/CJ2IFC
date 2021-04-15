@@ -35,6 +35,7 @@ class Converter:
         self.properties["file_destination"] = file_destination
         self.properties["name_attribute"] = name_attribute
 
+
     def convert(self, city_model):
         self.city_model = city_model
         self.create_new_file()
@@ -45,9 +46,11 @@ class Converter:
 
     def create_metadata(self):
         # Georeferencing
-        if 'transform' in self.city_model.j:
+        if self.city_model.is_transform():
             self.properties["local_scale"] = self.city_model.j['transform']['scale']
             self.properties["local_translation"] = self.city_model.j['transform']['translate']
+
+        self.properties["owner_history"] = self.IFC_model.by_type("IfcOwnerHistory")[0]
 
     def create_new_file(self):
         self.IFC_model = ifcopenshell.open('example/template.ifc')
@@ -123,6 +126,7 @@ class Converter:
                                             "RelatedObjects": [IFC_object],
                                             "RelatingObject": self.IFC_site}
                                          )
+            self.create_property_set(obj.attributes, IFC_object)
 
     def create_IFC_geometry(self, geometry):
         if geometry.type != "Solid":
@@ -153,3 +157,34 @@ class Converter:
         #         for triangle in face:
         #             print(triangle)
         # print(geometry.boundaries)
+
+    def create_property_set(self, CJ_attributes, IFC_entity):
+
+        IFC_object_properties = []
+        for property, val in CJ_attributes.items():
+            if val == None:
+                continue
+
+            if type(val) == int:
+                IFC_type = "IfcInteger"
+            elif type(val) == float:
+                IFC_type = "IfcReal"
+            elif type(val) == bool:
+                IFC_type = "IfcBoolean"
+            else:
+                IFC_type = "IfcText"
+
+            IFC_object_properties.append(
+                self.IFC_model.createIfcPropertySingleValue(property, property,
+                                                            self.IFC_model.create_entity(IFC_type, val), None)
+            )
+        property_set = self.IFC_model.createIfcPropertySet(ifcopenshell.guid.new(),
+                                                           self.properties["owner_history"],
+                                                           "CityJSON_attributes",
+                                                           None,
+                                                           IFC_object_properties)
+
+        self.IFC_model.createIfcRelDefinesByProperties(ifcopenshell.guid.new(),
+                                                       self.properties["owner_history"],
+                                                       None, None, [IFC_entity],
+                                                       property_set)
