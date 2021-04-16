@@ -46,16 +46,31 @@ class Converter:
 
     def create_metadata(self):
         # Georeferencing
+        self.properties["local_translation"] = None
+        self.properties["local_scale"] = None
         if self.city_model.is_transform():
             self.properties["local_scale"] = self.city_model.j['transform']['scale']
-            self.properties["local_translation"] = self.city_model.j['transform']['translate']
+            local_translation = self.city_model.j['transform']['translate']
+            self.properties["local_translation"] = {
+                "Eastings": local_translation[0],
+                "Northings": local_translation[1],
+                "OrthogonalHeight": local_translation[2]
+            }
+
+        epsg = self.city_model.get_epsg()
+        if epsg:
+            # Meter is assumed as unit for now
+            unit = self.IFC_model.createIfcSIUnit(None, "LENGTHUNIT", None, "METRE")
+            crs = self.IFC_model.create_entity("IfcProjectedCrs", Name=f"epsg:{epsg}")
+            self.IFC_model.create_entity("IfcMapConversion", self.IFC_representation_context, **self.properties["local_translation"])
 
         self.properties["owner_history"] = self.IFC_model.by_type("IfcOwnerHistory")[0]
 
     def create_new_file(self):
         self.IFC_model = ifcopenshell.open('example/template.ifc')
         self.IFC_site = self.IFC_model.by_type('IfcSite')[0]
-        self.IFC_representation_context = self.IFC_model.by_id(21)
+        self.IFC_representation_sub_context = self.IFC_model.by_type("IFCGEOMETRICREPRESENTATIONSUBCONTEXT")[0]
+        self.IFC_representation_context = self.IFC_model.by_type("IFCGEOMETRICREPRESENTATIONCONTEXT")[0]
         # self.IFC_model = ifcopenshell.file(schema='IFC4')
 
     def write_file(self):
@@ -112,7 +127,7 @@ class Converter:
             if IFC_geometry:
                 # semantic_surfaces (RoofSurface/GroundSurface/WallSurface)
                 shape_representation = self.IFC_model.create_entity("IfcShapeRepresentation",
-                                                                    self.IFC_representation_context, 'Body', 'Brep',
+                                                                    self.IFC_representation_sub_context, 'Body', 'Brep',
                                                                     [IFC_geometry])
                 product_representation = self.IFC_model.create_entity("IfcProductDefinitionShape",
                                                                       Representations=[shape_representation])
