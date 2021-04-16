@@ -31,5 +31,5 @@ The example file that could be used is example/3D_BAG_example.json
 
 ## TODO
 - [x] CityJSON Attributes as IFC properties in 'CityJSON_attributes' pset
-- [ ] Implement georeferencing
+- [x] Implement georeferencing
 - [ ] Do not use template IFC for new IFC file, but make IFC file from scratch
