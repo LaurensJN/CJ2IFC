@@ -19,9 +19,23 @@ class GeometryIO:
     def create_IFC_geometry(self, IFC_model, geometry):
         if geometry.type == "Solid":
             return self.create_IFC_closed_shell(IFC_model, geometry)
+        elif geometry.type in ["CompositeSolid", "MultiSolid"]:
+            return self.create_IFC_composite_closed_shell(IFC_model, geometry)
         else:
             warnings.warn("Types other than solids are not yet supported")
             return
+
+    def create_IFC_composite_closed_shell(self, IFC_model, geometry):
+        IFC_geometry = []
+        for shell in geometry.boundaries:
+            outershell = shell[0]
+            faces = []
+            for face in outershell:  # exterior shell
+                for triangle in face:
+                    faces.append(self.create_IFC_face(IFC_model, triangle))
+
+            shell = IFC_model.create_entity("IfcClosedShell", faces)
+            IFC_geometry.append(IFC_model.create_entity("IfcShellBasedSurfaceModel", [shell]))
 
     def create_IFC_closed_shell(self, IFC_model, geometry):
         outershell = geometry.boundaries[0]
@@ -33,7 +47,7 @@ class GeometryIO:
 
         if len(geometry.boundaries) == 1:
             shell = IFC_model.create_entity("IfcClosedShell", faces)
-            IFC_geometry = IFC_model.create_entity("IfcFacetedBrep", shell)
+            IFC_geometry = IFC_model.create_entity("IfcShellBasedSurfaceModel", [shell])
             return IFC_geometry
 
         # TODO: INTERIOR SHELL
@@ -55,8 +69,8 @@ class GeometryIO:
 
         # this is wrong (shells are not closed!)
         # should be something else (tesselatedfaceset?)
-        shell = IFC_model.create_entity("IfcClosedShell", faces)
-        IFC_geometry = IFC_model.create_entity("IfcFacetedBrep", shell)
+        shell = IFC_model.create_entity("IfcOpenShell", faces)
+        IFC_geometry = IFC_model.create_entity("IfcShellBasedSurfaceModel", [shell])
         return IFC_geometry
 
     def create_IFC_face(self, IFC_model, face):
