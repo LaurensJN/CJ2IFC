@@ -26,7 +26,7 @@ class GeometryIO:
             return
 
     def create_IFC_composite_closed_shell(self, IFC_model, geometry):
-        IFC_geometry = []
+        shells = []
         for shell in geometry.boundaries:
             outershell = shell[0]
             faces = []
@@ -34,8 +34,9 @@ class GeometryIO:
                 for triangle in face:
                     faces.append(self.create_IFC_face(IFC_model, triangle))
 
-            shell = IFC_model.create_entity("IfcClosedShell", faces)
-            IFC_geometry.append(IFC_model.create_entity("IfcShellBasedSurfaceModel", [shell]))
+            shells.append(IFC_model.create_entity("IfcClosedShell", faces))
+        IFC_geometry = IFC_model.create_entity("IfcShellBasedSurfaceModel", shells)
+        return IFC_geometry
 
     def create_IFC_closed_shell(self, IFC_model, geometry):
         outershell = geometry.boundaries[0]
@@ -67,8 +68,6 @@ class GeometryIO:
             for triangle in geometry.boundaries[shell][face_id]:
                 faces.append(self.create_IFC_face(IFC_model, triangle))
 
-        # this is wrong (shells are not closed!)
-        # should be something else (tesselatedfaceset?)
         shell = IFC_model.create_entity("IfcOpenShell", faces)
         IFC_geometry = IFC_model.create_entity("IfcShellBasedSurfaceModel", [shell])
         return IFC_geometry
