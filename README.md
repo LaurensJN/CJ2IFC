@@ -23,8 +23,8 @@ The example file that could be used is example/3D_BAG_example.json
 - [ ] "MultiLineString"
 - [ ] "MultiSurface"
 - [ ] "CompositeSurface"
-- [ ] "Solid"
-- [x] "MultiSolid": exterior shell
+- [x] "Solid"
+- [ ] "MultiSolid": exterior shell
 - [ ] "MultiSolid": interior shell
 - [ ] "CompositeSolid"
 - [ ] "GeometryInstance" 
